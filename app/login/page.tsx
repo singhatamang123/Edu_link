@@ -67,7 +67,7 @@ export default function LoginPage() {
       const result = await registerWithEmail(formData.email, formData.password, formData.fullName, role);
       setIsLoading(false);
       if (result.success) {
-        router.push('/dashboard');
+        router.push('/welcome');
       } else {
         setError(result.error || 'Registration failed');
       }

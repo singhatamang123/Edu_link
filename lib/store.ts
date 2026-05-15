@@ -141,7 +141,7 @@ export const useAppStore = create<AppState>()(
           isLoggedIn: true, 
           currentUser: { phone: '', name, childIds: role === 'parent' ? ['s1', 's2'] : [], subjects: role === 'teacher' ? ['General'] : [] }, 
           userRole: role,
-          hasCompletedOnboarding: true 
+          hasCompletedOnboarding: false 
         });
 
         return { success: true };
