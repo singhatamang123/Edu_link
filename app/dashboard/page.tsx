@@ -102,7 +102,7 @@ const UpdateCard = ({ update }: { update: Update }) => {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { students, updates, isLoggedIn, currentUser, logout } = useAppStore();
+  const { students, updates, isLoggedIn, currentUser, logout, userRole } = useAppStore();
 
   // Auth Guard
   React.useEffect(() => {
@@ -113,9 +113,14 @@ export default function DashboardPage() {
 
   if (!isLoggedIn || !currentUser) return null;
 
-  // Filter students to only show the parent's children
-  const myChildren = students.filter(s => currentUser.childIds.includes(s.id));
-  const myUpdates = updates.filter(u => currentUser.childIds.includes(u.studentId));
+  // Filter students to only show the parent's children (with safety checks)
+  const myChildren = userRole === 'parent' && 'childIds' in currentUser 
+    ? students.filter(s => currentUser.childIds?.includes(s.id))
+    : [];
+
+  const myUpdates = userRole === 'parent' && 'childIds' in currentUser
+    ? updates.filter(u => currentUser.childIds?.includes(u.studentId))
+    : [];
 
   return (
     <div className="min-h-screen bg-slate-50 pb-32">
