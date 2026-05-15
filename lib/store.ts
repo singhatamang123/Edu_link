@@ -56,8 +56,8 @@ interface AppState {
   messages: Message[];
   
   // Actions
-  sendOTP: (phone: string) => Promise<{ success: boolean; error?: string }>;
-  verifyOTP: (phone: string, token: string, role: 'parent' | 'teacher') => Promise<{ success: boolean; error?: string }>;
+  loginWithEmail: (email: string, pass: string) => Promise<{ success: boolean; error?: string }>;
+  registerWithEmail: (email: string, pass: string, name: string, role: 'parent' | 'teacher') => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   completeOnboarding: () => Promise<void>;
   updateProfile: (name: string) => void;
@@ -83,36 +83,26 @@ export const useAppStore = create<AppState>()(
       timeline: MOCK_TIMELINE,
       messages: [],
 
-      sendOTP: async (phone) => {
-        const { error } = await supabase.auth.signInWithOtp({
-          phone: `+977${phone}`, // Hardcoded for Nepal for now
+      loginWithEmail: async (email, password) => {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
         });
+
         if (error) return { success: false, error: error.message };
-        return { success: true };
-      },
 
-      verifyOTP: async (phone, token, role) => {
-        const { data, error: verifyError } = await supabase.auth.verifyOtp({
-          phone: `+977${phone}`,
-          token,
-          type: 'sms',
-        });
-
-        if (verifyError) return { success: false, error: verifyError.message };
-
-        // Verification successful, now check/load profile
+        // Load Profile
         const { data: profile } = await supabase
           .from('profiles')
           .select('*')
-          .eq('phone', phone)
-          .eq('role', role)
+          .eq('id', data.user.id)
           .single();
 
         if (profile) {
           set({ 
             isLoggedIn: true, 
             currentUser: {
-              phone: profile.phone,
+              phone: profile.phone || '',
               name: profile.full_name,
               childIds: profile.child_ids || [],
               subjects: profile.subjects || []
@@ -120,15 +110,40 @@ export const useAppStore = create<AppState>()(
             userRole: profile.role,
             hasCompletedOnboarding: true
           });
-        } else {
-          // New User
-          set({ 
-            isLoggedIn: true, 
-            currentUser: { phone, name: '', childIds: [], subjects: [] }, 
-            userRole: role,
-            hasCompletedOnboarding: false 
-          });
         }
+        return { success: true };
+      },
+
+      registerWithEmail: async (email, password, name, role) => {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+
+        if (error) return { success: false, error: error.message };
+        if (!data.user) return { success: false, error: 'Signup failed' };
+
+        // Create Profile
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([{
+            id: data.user.id,
+            phone: '', // No phone required now
+            full_name: name,
+            role: role,
+            child_ids: role === 'parent' ? ['s1', 's2'] : [],
+            subjects: role === 'teacher' ? ['General'] : []
+          }]);
+
+        if (profileError) return { success: false, error: profileError.message };
+
+        set({ 
+          isLoggedIn: true, 
+          currentUser: { phone: '', name, childIds: role === 'parent' ? ['s1', 's2'] : [], subjects: role === 'teacher' ? ['General'] : [] }, 
+          userRole: role,
+          hasCompletedOnboarding: true 
+        });
+
         return { success: true };
       },
 
