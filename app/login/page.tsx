@@ -67,10 +67,10 @@ export default function LoginPage() {
 
     setIsLoading(true);
     // Simulate verification
-    setTimeout(() => {
-      setIsLoading(false);
+    setTimeout(async () => {
       if (enteredOtp === '1234') { // Mock OTP
-        const success = login(phoneNumber, role);
+        const success = await login(phoneNumber, role);
+        setIsLoading(false);
         if (success) {
           if (role === 'teacher') {
             router.push('/teacher/review');

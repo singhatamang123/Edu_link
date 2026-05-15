@@ -8,6 +8,9 @@ import {
   type Update, 
   type TimelineEvent 
 } from './mock-data';
+import { createClient } from './supabase';
+
+const supabase = createClient();
 
 interface ParentUser {
   phone: string;
@@ -53,7 +56,7 @@ interface AppState {
   messages: Message[];
   
   // Actions
-  login: (phone: string, role: 'parent' | 'teacher') => boolean;
+  login: (phone: string, role: 'parent' | 'teacher') => Promise<boolean>;
   logout: () => void;
   completeOnboarding: () => void;
   updateProfile: (name: string) => void;
@@ -63,6 +66,7 @@ interface AppState {
   addTimelineEvent: (event: TimelineEvent) => void;
   updateStudentSkills: (studentId: string, strength?: string, weakness?: string) => void;
   sendMessage: (text: string, receiverId: string) => void;
+  fetchInitialData: () => Promise<void>;
 }
 
 export const useAppStore = create<AppState>()(
@@ -78,19 +82,26 @@ export const useAppStore = create<AppState>()(
       timeline: MOCK_TIMELINE,
       messages: [],
 
-      login: (phone, role) => {
-        if (role === 'parent') {
-          const parent = REGISTERED_PARENTS.find(p => p.phone === phone);
-          if (parent) {
-            set({ isLoggedIn: true, currentUser: parent, userRole: 'parent' });
-            return true;
-          }
-        } else {
-          const teacher = REGISTERED_TEACHERS.find(t => t.phone === phone);
-          if (teacher) {
-            set({ isLoggedIn: true, currentUser: teacher, userRole: 'teacher' });
-            return true;
-          }
+      login: async (phone, role) => {
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('phone', phone)
+          .eq('role', role)
+          .single();
+
+        if (profile) {
+          set({ 
+            isLoggedIn: true, 
+            currentUser: {
+              phone: profile.phone,
+              name: profile.full_name,
+              childIds: profile.child_ids || [],
+              subjects: profile.subjects || []
+            }, 
+            userRole: profile.role 
+          });
+          return true;
         }
         return false;
       },
@@ -110,9 +121,18 @@ export const useAppStore = create<AppState>()(
       
       setLanguage: (lang) => set({ language: lang }),
 
-      addUpdate: (update) => set((state) => ({
-        updates: [update, ...state.updates]
-      })),
+      addUpdate: async (update) => {
+        set((state) => ({ updates: [update, ...state.updates] }));
+        
+        // Save to Supabase
+        await supabase.from('updates').insert([{
+          student_id: update.studentId,
+          teacher_name: update.teacherName,
+          subject: update.subject,
+          message: update.message,
+          type: update.type
+        }]);
+      },
 
       addTimelineEvent: (event) => set((state) => ({
         timeline: [event, ...state.timeline]
@@ -131,22 +151,55 @@ export const useAppStore = create<AppState>()(
         })
       })),
 
-      sendMessage: (text, receiverId) => set((state) => {
-        if (!state.currentUser) return state;
+      sendMessage: async (text, receiverId) => {
+        const { currentUser } = get();
+        if (!currentUser) return;
         
         const newMessage: Message = {
           id: Date.now().toString(),
-          senderId: state.currentUser.phone,
-          senderName: state.currentUser.name,
+          senderId: currentUser.phone,
+          senderName: currentUser.name,
           receiverId,
           text,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
         
-        return {
+        set((state) => ({
           messages: [...state.messages, newMessage]
-        };
-      })
+        }));
+
+        // Save to Supabase
+        await supabase.from('messages').insert([{
+          sender_id: currentUser.phone,
+          receiver_id: receiverId,
+          text: text
+        }]);
+      },
+
+      fetchInitialData: async () => {
+        // Fetch Students
+        const { data: students } = await supabase.from('students').select('*');
+        if (students) set({ students });
+
+        // Fetch Updates
+        const { data: updates } = await supabase.from('updates').select('*').order('created_at', { ascending: false });
+        if (updates) set({ updates });
+
+        // Fetch Messages
+        const { data: messages } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
+        if (messages) {
+          set({ 
+            messages: messages.map(m => ({
+              id: m.id,
+              senderId: m.sender_id,
+              receiverId: m.receiver_id,
+              text: m.text,
+              senderName: '', // Would normally fetch from profiles
+              timestamp: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            }))
+          });
+        }
+      }
     }),
     {
       name: 'edulink-storage',

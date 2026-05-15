@@ -102,14 +102,16 @@ const UpdateCard = ({ update }: { update: Update }) => {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { students, updates, isLoggedIn, currentUser, logout, userRole } = useAppStore();
+  const { students, updates, isLoggedIn, currentUser, logout, userRole, fetchInitialData } = useAppStore();
 
-  // Auth Guard
+  // Auth Guard & Initial Data Fetch
   React.useEffect(() => {
     if (!isLoggedIn) {
       router.push('/login');
+    } else {
+      fetchInitialData();
     }
-  }, [isLoggedIn, router]);
+  }, [isLoggedIn, router, fetchInitialData]);
 
   if (!isLoggedIn || !currentUser) return null;
 
