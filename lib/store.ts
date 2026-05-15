@@ -32,6 +32,15 @@ export const REGISTERED_TEACHERS: TeacherUser[] = [
   { phone: '9801111111', name: 'Mr. Adhikari', subjects: ['Nepali', 'History'] }
 ];
 
+interface Message {
+  id: string;
+  senderId: string;
+  receiverId: string;
+  text: string;
+  timestamp: string;
+  senderName: string;
+}
+
 interface AppState {
   userRole: 'parent' | 'teacher';
   isLoggedIn: boolean;
@@ -41,6 +50,7 @@ interface AppState {
   students: Student[];
   updates: Update[];
   timeline: TimelineEvent[];
+  messages: Message[];
   
   // Actions
   login: (phone: string, role: 'parent' | 'teacher') => boolean;
@@ -51,6 +61,7 @@ interface AppState {
   addUpdate: (update: Update) => void;
   addTimelineEvent: (event: TimelineEvent) => void;
   updateStudentSkills: (studentId: string, strength?: string, weakness?: string) => void;
+  sendMessage: (text: string, receiverId: string) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -64,6 +75,7 @@ export const useAppStore = create<AppState>()(
       students: MOCK_STUDENTS,
       updates: MOCK_UPDATES,
       timeline: MOCK_TIMELINE,
+      messages: [],
 
       login: (phone, role) => {
         if (role === 'parent') {
@@ -109,7 +121,24 @@ export const useAppStore = create<AppState>()(
           }
           return s;
         })
-      }))
+      })),
+
+      sendMessage: (text, receiverId) => set((state) => {
+        if (!state.currentUser) return state;
+        
+        const newMessage: Message = {
+          id: Date.now().toString(),
+          senderId: state.currentUser.phone,
+          senderName: state.currentUser.name,
+          receiverId,
+          text,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+        
+        return {
+          messages: [...state.messages, newMessage]
+        };
+      })
     }),
     {
       name: 'edulink-storage',
