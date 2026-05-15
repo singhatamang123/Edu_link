@@ -56,6 +56,7 @@ interface AppState {
   login: (phone: string, role: 'parent' | 'teacher') => boolean;
   logout: () => void;
   completeOnboarding: () => void;
+  updateProfile: (name: string) => void;
   setUserRole: (role: 'parent' | 'teacher') => void;
   setLanguage: (lang: 'en' | 'ne') => void;
   addUpdate: (update: Update) => void;
@@ -97,6 +98,13 @@ export const useAppStore = create<AppState>()(
       logout: () => set({ isLoggedIn: false, currentUser: null }),
 
       completeOnboarding: () => set({ hasCompletedOnboarding: true }),
+
+      updateProfile: (name) => set((state) => {
+        if (!state.currentUser) return state;
+        return {
+          currentUser: { ...state.currentUser, name }
+        };
+      }),
 
       setUserRole: (role) => set({ userRole: role }),
       

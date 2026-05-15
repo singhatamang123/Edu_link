@@ -42,10 +42,15 @@ const slides = [
 
 export default function WelcomePage() {
   const router = useRouter();
-  const { completeOnboarding, currentUser, setLanguage, language } = useAppStore();
+  const { completeOnboarding, currentUser, setLanguage, language, updateProfile } = useAppStore();
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [parentName, setParentName] = useState(currentUser?.name || '');
 
   const handleNext = () => {
+    if (currentSlide === 0 && parentName.trim()) {
+      updateProfile(parentName);
+    }
+
     if (currentSlide < slides.length - 1) {
       setCurrentSlide(prev => prev + 1);
     } else {
@@ -81,10 +86,10 @@ export default function WelcomePage() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -50 }}
             transition={{ duration: 0.4 }}
-            className="space-y-10"
+            className="space-y-10 w-full"
           >
             <div className={cn(
-              "w-24 h-24 rounded-[2.5rem] flex items-center justify-center text-white mx-auto shadow-2xl",
+              "w-24 h-24 rounded-[2.5rem] flex items-center justify-center text-white mx-auto shadow-2xl transition-all",
               slides[currentSlide].color
             )}>
               {React.createElement(slides[currentSlide].icon, { className: "w-10 h-10" })}
@@ -92,11 +97,29 @@ export default function WelcomePage() {
 
             <div className="space-y-4">
               <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight leading-tight">
-                {slides[currentSlide].title}
+                {currentSlide === 0 ? `Namaste! I'm EduLink.` : slides[currentSlide].title}
               </h1>
               <p className="text-slate-500 font-medium leading-relaxed">
-                {slides[currentSlide].description}
+                {currentSlide === 0 
+                  ? "Before we begin, what should we call you? Your name will appear on your children's reports."
+                  : slides[currentSlide].description}
               </p>
+
+              {currentSlide === 0 && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-8 pt-4"
+                >
+                  <input 
+                    type="text" 
+                    value={parentName}
+                    onChange={(e) => setParentName(e.target.value)}
+                    placeholder="Enter your full name"
+                    className="w-full px-6 py-5 bg-slate-50 border-2 border-transparent rounded-3xl focus:bg-white focus:border-parent focus:outline-none font-bold text-slate-800 text-center transition-all"
+                  />
+                </motion.div>
+              )}
             </div>
           </motion.div>
         </AnimatePresence>
