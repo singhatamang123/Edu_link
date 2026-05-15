@@ -46,7 +46,7 @@ export default function WelcomePage() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [parentName, setParentName] = useState(currentUser?.name || '');
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentSlide === 0 && parentName.trim()) {
       updateProfile(parentName);
     }
