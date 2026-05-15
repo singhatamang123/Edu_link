@@ -71,7 +71,7 @@ export default function WelcomePage() {
           {language === 'en' ? 'नेपाली' : 'English'}
         </button>
         <button 
-          onClick={() => { completeOnboarding(); router.push('/dashboard'); }}
+          onClick={async () => { await completeOnboarding(); router.push('/dashboard'); }}
           className="text-slate-400 font-bold text-xs uppercase tracking-widest"
         >
           Skip

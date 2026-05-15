@@ -71,7 +71,7 @@ interface AppState {
 
 export const useAppStore = create<AppState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       userRole: 'parent',
       isLoggedIn: false,
       currentUser: null,
