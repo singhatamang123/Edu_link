@@ -24,12 +24,12 @@ function cn(...inputs: ClassValue[]) {
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, setLanguage, language, hasCompletedOnboarding } = useAppStore();
+  const { sendOTP, verifyOTP, setLanguage, language, hasCompletedOnboarding } = useAppStore();
   
   const [step, setStep] = useState<'role' | 'phone' | 'otp'>('role');
   const [role, setRole] = useState<'parent' | 'teacher'>('parent');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [otp, setOtp] = useState(['', '', '', '']);
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [timer, setTimer] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -43,50 +43,50 @@ export default function LoginPage() {
     return () => clearInterval(interval);
   }, [timer]);
 
-  const handleSendOTP = () => {
+  const handleSendOTP = async () => {
     if (phoneNumber.length < 10) {
-      setError('Please enter a valid 10-digit phone number');
+      setError('Please enter a valid 10-digit number');
       return;
     }
-    setError('');
+    
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
+    setError('');
+    
+    const result = await sendOTP(phoneNumber);
+    setIsLoading(false);
+
+    if (result.success) {
       setStep('otp');
-      setTimer(30);
-    }, 1500);
+      setTimer(60); // Standard 60s for real SMS
+    } else {
+      setError(result.error || 'Failed to send OTP. Please try again.');
+    }
   };
 
-  const handleVerifyOTP = () => {
+  const handleVerifyOTP = async () => {
     const enteredOtp = otp.join('');
-    if (enteredOtp.length < 4) {
-      setError('Please enter the complete 4-digit OTP');
+    if (enteredOtp.length < 6) {
+      setError('Please enter the full 6-digit code');
       return;
     }
 
     setIsLoading(true);
-    // Simulate verification
-    setTimeout(async () => {
-      if (enteredOtp === '1234') { // Mock OTP
-        const success = await login(phoneNumber, role);
-        setIsLoading(false);
-        if (success) {
-          if (role === 'teacher') {
-            router.push('/teacher/review');
-          } else if (!hasCompletedOnboarding) {
-            router.push('/welcome');
-          } else {
-            router.push('/dashboard');
-          }
-        } else {
-          setError(`This number is not registered as a ${role} in our records.`);
-          setStep('phone');
-        }
+    setError('');
+
+    const result = await verifyOTP(phoneNumber, enteredOtp, role);
+    setIsLoading(false);
+
+    if (result.success) {
+      if (role === 'teacher') {
+        router.push('/teacher/review');
+      } else if (!hasCompletedOnboarding) {
+        router.push('/welcome');
       } else {
-        setError('Invalid OTP. Please try again.');
+        router.push('/dashboard');
       }
-    }, 1500);
+    } else {
+      setError(result.error || 'Invalid OTP. Please try again.');
+    }
   };
 
   const handleOtpChange = (index: number, value: string) => {
@@ -96,7 +96,7 @@ export default function LoginPage() {
     setOtp(newOtp);
     
     // Auto-focus next input
-    if (value && index < 3) {
+    if (value && index < 5) {
       const nextInput = document.getElementById(`otp-${index + 1}`);
       nextInput?.focus();
     }
@@ -289,7 +289,7 @@ export default function LoginPage() {
                 <div className="text-center">
                   <button 
                     disabled={timer > 0}
-                    onClick={() => { setTimer(30); setOtp(['','','','']); }}
+                    onClick={() => { setTimer(60); setOtp(['','','','','','']); }}
                     className="text-slate-400 font-bold text-xs hover:text-parent transition-colors disabled:opacity-50"
                   >
                     {timer > 0 ? `Resend code in ${timer}s` : "Didn't receive code? Resend"}

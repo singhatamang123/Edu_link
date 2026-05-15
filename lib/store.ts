@@ -56,9 +56,10 @@ interface AppState {
   messages: Message[];
   
   // Actions
-  login: (phone: string, role: 'parent' | 'teacher') => Promise<boolean>;
+  sendOTP: (phone: string) => Promise<{ success: boolean; error?: string }>;
+  verifyOTP: (phone: string, token: string, role: 'parent' | 'teacher') => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
-  completeOnboarding: () => void;
+  completeOnboarding: () => Promise<void>;
   updateProfile: (name: string) => void;
   setUserRole: (role: 'parent' | 'teacher') => void;
   setLanguage: (lang: 'en' | 'ne') => void;
@@ -82,7 +83,24 @@ export const useAppStore = create<AppState>()(
       timeline: MOCK_TIMELINE,
       messages: [],
 
-      login: async (phone, role) => {
+      sendOTP: async (phone) => {
+        const { error } = await supabase.auth.signInWithOtp({
+          phone: `+977${phone}`, // Hardcoded for Nepal for now
+        });
+        if (error) return { success: false, error: error.message };
+        return { success: true };
+      },
+
+      verifyOTP: async (phone, token, role) => {
+        const { data, error: verifyError } = await supabase.auth.verifyOtp({
+          phone: `+977${phone}`,
+          token,
+          type: 'sms',
+        });
+
+        if (verifyError) return { success: false, error: verifyError.message };
+
+        // Verification successful, now check/load profile
         const { data: profile } = await supabase
           .from('profiles')
           .select('*')
@@ -100,19 +118,18 @@ export const useAppStore = create<AppState>()(
               subjects: profile.subjects || []
             }, 
             userRole: profile.role,
-            hasCompletedOnboarding: true // Existing users skip onboarding
+            hasCompletedOnboarding: true
           });
-          return true;
         } else {
-          // New User - allow login but don't set profile yet
+          // New User
           set({ 
             isLoggedIn: true, 
             currentUser: { phone, name: '', childIds: [], subjects: [] }, 
             userRole: role,
             hasCompletedOnboarding: false 
           });
-          return true;
         }
+        return { success: true };
       },
 
       logout: () => set({ isLoggedIn: false, currentUser: null }),
