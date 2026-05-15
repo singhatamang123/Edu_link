@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+@theme {
+  --color-parent: #2563eb;
+  --color-parent-hover: #1d4ed8;
+  --color-teacher: #10b981;
+  --color-teacher-hover: #059669;
+  --color-nepal-red: #dc143c;
+  --color-nepal-blue: #1e40af;
+  
+  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #0f172a;
+}
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-6 py-3 rounded-2xl font-semibold transition-all duration-300 active:scale-95 disabled:opacity-50;
+  }
+  
+  .glass-card {
+    @apply bg-white/80 backdrop-blur-md border border-slate-200 shadow-xl shadow-slate-200/50 rounded-[2.5rem];
+  }
+
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Hide scrollbar for IE, Edge and Firefox */
+  .no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+}
