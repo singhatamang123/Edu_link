@@ -150,18 +150,6 @@ export const useAppStore = create<AppState>()(
       logout: () => set({ isLoggedIn: false, currentUser: null }),
 
       completeOnboarding: async () => {
-        const { currentUser, userRole } = get();
-        if (currentUser) {
-          // Final save to Supabase
-          await supabase.from('profiles').upsert([{
-            id: currentUser.phone, // Using phone as ID for simplicity in this dev phase
-            phone: currentUser.phone,
-            full_name: currentUser.name,
-            role: userRole,
-            child_ids: userRole === 'parent' ? ['s1', 's2'] : [], // Assign mock kids for now
-            subjects: userRole === 'teacher' ? ['General'] : []
-          }], { onConflict: 'phone' });
-        }
         set({ hasCompletedOnboarding: true });
       },
 
