@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
+import { BottomNav } from '@/components/layout/BottomNav';
 import { useAppStore } from '@/lib/store';
 import { type Student, type Update, type TimelineEvent } from '@/lib/mock-data';
 import { clsx, type ClassValue } from 'clsx';
@@ -27,7 +28,10 @@ function cn(...inputs: ClassValue[]) {
 
 export default function TeacherReviewPage() {
   const router = useRouter();
-  const { students, addUpdate, addTimelineEvent, updateStudentSkills } = useAppStore();
+  const { students, addUpdate, addTimelineEvent, updateStudentSkills, messages, currentUser } = useAppStore();
+
+  // Calculate unread messages for teacher
+  const teacherMessages = messages.filter(m => m.receiverId === currentUser?.phone);
   
   const [selectedStudent, setSelectedStudent] = useState(students[0]?.id || '');
   const [category, setCategory] = useState<'academic' | 'behavior' | 'achievement'>('academic');
@@ -46,7 +50,7 @@ export default function TeacherReviewPage() {
     // Add to Recent Updates Feed
     const newUpdate: Update = {
       id: Date.now().toString(),
-      teacherName: 'Mrs. Sharma', // Simulated logged in teacher
+      teacherName: currentUser?.name || 'Teacher', 
       subject: category === 'academic' ? 'Mathematics' : 'General',
       message: message,
       time: 'Just now',
@@ -79,7 +83,7 @@ export default function TeacherReviewPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20">
+    <div className="min-h-screen bg-slate-50 pb-32">
       <DashboardHeader title="Submit Review" />
 
       <main className="max-w-2xl mx-auto px-6 pt-8">
@@ -94,8 +98,15 @@ export default function TeacherReviewPage() {
               <h2 className="text-2xl font-bold text-slate-900">Teacher Portal</h2>
               <p className="text-sm text-slate-500 font-medium">Share student progress with parents</p>
             </div>
-            <div className="w-12 h-12 bg-teacher/10 rounded-2xl flex items-center justify-center text-teacher">
-              <GraduationCap className="w-7 h-7" />
+            <div className="relative group cursor-pointer" onClick={() => router.push('/messages')}>
+              <div className="w-12 h-12 bg-teacher/10 rounded-2xl flex items-center justify-center text-teacher group-hover:bg-teacher group-hover:text-white transition-all">
+                <MessageSquare className="w-6 h-6" />
+              </div>
+              {teacherMessages.length > 0 && (
+                <div className="absolute -top-1 -right-1 w-5 h-5 bg-nepal-red text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white animate-bounce">
+                  {teacherMessages.length}
+                </div>
+              )}
             </div>
           </div>
 
@@ -246,6 +257,8 @@ export default function TeacherReviewPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <BottomNav />
     </div>
   );
 }
