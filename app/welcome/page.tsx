@@ -54,7 +54,7 @@ export default function WelcomePage() {
     if (currentSlide < slides.length - 1) {
       setCurrentSlide(prev => prev + 1);
     } else {
-      completeOnboarding();
+      await completeOnboarding();
       router.push('/dashboard');
     }
   };
